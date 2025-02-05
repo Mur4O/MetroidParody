@@ -52,17 +52,19 @@ walk_left = (
 i = 0
 player_animation_i = 0
 player_speed = 5
+player_x = 100
+player_y = 800
+
 run = True
 while run:
 
     screen.blit(bg_img,(0,0))
-    screen.blit(pygame.transform.scale(stay[player_animation_i], character_size),(100,800))
+    screen.blit(pygame.transform.scale(stay[player_animation_i], character_size),(player_x, player_y))
 
     if player_animation_i == 4:
         player_animation_i = 0
     else:
         player_animation_i += 1
-
 
 
 
