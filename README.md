@@ -1,5 +1,4 @@
-ТЗ к игре
-“Izometric game”
+# ТЗ к игре “Izometric game”
  
 ## 1. Введение
 
