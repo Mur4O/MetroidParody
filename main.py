@@ -1,13 +1,16 @@
 import pygame
 from random import randint
 from pygame import *
+import math
+from math import sqrt, acos
 
+YELLOW = (220, 200, 0)
 
 pygame.init()
 
 clock = pygame.time.Clock()
 screen = display.set_mode((1680, 1000)) # pygame.FULLSCREEN
-display.set_caption('Metroid game')
+display.set_caption('Little Adventure')
 
 # icon = pygame.image.load('')
 # pygame.display.set_icon()
@@ -18,6 +21,10 @@ height = 1050
 bg_img = pygame.image.load('./Assets/grass.png')
 bg_img = pygame.transform.scale(bg_img,(width,height))
 
+pygame.mixer.music.load('/Users/yarik/PycharmProjects/MetroidParody/Assets/1-09. Beneath the Mask -instrumental version-.mp3')
+pygame.mixer.music.set_volume(0.1)
+pygame.mixer.music.play()
+
 character_size = (96,120)
 
 UPPER = False
@@ -26,90 +33,269 @@ RIGHT = False
 LEFT = False
 STOP = False
 
-stay = (
-    pygame.image.load('./Assets/Rabbit_hero/Stay/S1.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Stay/S2.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Stay/S3.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Stay/S4.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Stay/S5.png')
-)
+stay = []
+ass = []
+walk_right = []
+walk_left = []
+player_animations = (stay, ass, walk_right, walk_left)
+trees = []
+NPC_anim = []
+cummen_img = []
 
-walk_right = (
-    pygame.image.load('Assets/Rabbit_hero/Right/R1.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R2.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R3.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R4.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R5.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R6.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R7.png'),
-    pygame.image.load('Assets/Rabbit_hero/Right/R8.png')
-)
+for i in range (1, 8):
+    image = pygame.image.load(f'./Assets/Cummen/C{i}.png').convert_alpha()
+    cummen_img.append(image)
 
-walk_left = (
-    pygame.image.load('Assets/Rabbit_hero/Left/L1.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L2.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L3.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L4.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L5.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L6.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L7.png'),
-    pygame.image.load('Assets/Rabbit_hero/Left/L8.png')
-)
+for i in range (1, 3):
+    image = pygame.image.load(f'./Assets/Tree{i}.png').convert_alpha()
+    image = pygame.transform.scale(image,(350,400))
+    trees.append(image)
 
-ass = (
-    pygame.image.load('./Assets/Rabbit_hero/Back/B1.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Back/B2.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Back/B3.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Back/B4.png'),
-    pygame.image.load('./Assets/Rabbit_hero/Back/B5.png')
-)
+for i in range (1, 6):
+    image = pygame.image.load(f'./Assets/Rabbit_hero/Stay/S{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, character_size)
+    stay.append(image)
+    image = pygame.image.load(f'./Assets/Rabbit_hero/Back/B{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, character_size)
+    ass.append(image)
 
-cummen = (
-    pygame.image.load('./Assets/Cummen/C1.png'),
-    pygame.image.load('./Assets/Cummen/C2.png'),
-    pygame.image.load('./Assets/Cummen/C3.png'),
-    pygame.image.load('./Assets/Cummen/C4.png'),
-    pygame.image.load('./Assets/Cummen/C5.png'),
-    pygame.image.load('./Assets/Cummen/C6.png'),
-    pygame.image.load('./Assets/Cummen/C7.png'),
-)
+for i in range (1, 8):
+    image = pygame.image.load(f'./Assets/Rabbit_hero/Right/R{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, character_size)
+    walk_right.append(image)
+    image = pygame.image.load(f'./Assets/Rabbit_hero/Left/L{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, character_size)
+    walk_left.append(image)
 
+for i in range (1, 6):
+    image = pygame.image.load(f'./Assets/NPC/S{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, character_size)
+    NPC_anim.append(image)
 
-
-cummens = pygame.sprite.Group()
 i = 0
-player_animation_i = 0
 x = 0
 y = 0
 
 class Cummen(pygame.sprite.Sprite):
-    def __init__(self, a, b, path):
+    def __init__(self, a, b, num):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(path).convert_alpha()
-        self.rect = self.image.get_rect(center=(a, b))
+        self.image = cummen_img[num]
+        self.rect = self.image.get_rect()
+        self.rect.center = (a, b)
 
     def update(self, x, y):
         self.rect.x += x
         self.rect.y += y
 
-cummen_counter = 0
-cummen_sprite = 0
+class Tree(pygame.sprite.Sprite):
+    def __init__(self, a, b, num):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = trees[num]
+        # self.image = Surface((350,400))
+        self.rect = self.image.get_rect()
+        self.rect.center = (a, b)
 
-cummen1 = Cummen(width/2, height/2, f'/Users/yarik/PycharmProjects/MetroidParody/Assets/Cummen/C1.png')
+    def update(self, x, y):
+        self.rect.x += x
+        self.rect.y += y
 
-cumen_img = pygame.image.load('./Assets/Cummen/C1.png')
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = player_animations
+        self.index = 0
+        self.player_animation_i = 0
+        self.image = self.images[self.index][self.player_animation_i]
+        self.rect = self.image.get_rect()
+        self.rect.center = (width / 2, height / 2)
+
+        self.current_time = 0
+
+    def update (self, vector):
+        if self.current_time < 60:
+            self.current_time += 1
+        else:
+            self.current_time = 0
+
+        self.index = vector
+        if self.current_time % 5 == 0:
+            if self.player_animation_i >= len(player_animations[self.index]) - 1:
+                self.player_animation_i = 0
+            else:
+                self.image = player_animations[self.index][self.player_animation_i]
+                self.player_animation_i += 1
+            self.rect = self.image.get_rect()
+            self.rect.center = (width / 2, height / 2)
+
+class NPC(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = NPC_anim
+        self.index = 0
+        self.player_animation_i = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (width - 200, height/2)
+        self.current_time = 0
+
+    def update(self, x, y):
+        self.rect.x += x
+        self.rect.y += y
+
+        if self.current_time < 60:
+            self.current_time += 1
+        else:
+            self.current_time = 0
+
+        if self.current_time % 5 == 0:
+            if self.index >= len(NPC_anim) - 1:
+                self.index = 0
+            else:
+                self.image = NPC_anim[self.index]
+                self.index += 1
+
+
+#player_animations[0][0]
+
+def check_collizions(rect1, x, y):
+    for obj in objects:
+        if rect1.colliderect(obj.rect):
+            if npc.rect == obj.rect:
+                dialog()
+            point1 = (rect1.x, rect1.y)
+            point2 = (rect1.x + rect1.width, rect1.y)
+            point3 = (obj.rect.x, obj.rect.y)
+
+            p1_p2_vector = (point1[0] - point2[0], point1[1] - point2[1])
+            p1_p3_vector = (point1[0] - point3[0], point1[1] - point3[1])
+
+            scalar = p1_p2_vector[0] * p1_p3_vector[0] + p1_p2_vector[1] * p1_p3_vector[1]
+            mod_p1_p2 = sqrt(p1_p2_vector[0] ** 2 + p1_p2_vector[1] ** 2)
+            mod_p1_p3 = sqrt(p1_p3_vector[0] ** 2 + p1_p3_vector[1] ** 2)
+
+            if mod_p1_p2 * mod_p1_p3 == 0:
+                arccos = 0.62
+            else:
+                cos = scalar / (mod_p1_p2 * mod_p1_p3)
+                arccos = math.acos(cos)
+
+            if point3[1] < point1[1]:
+                arccos = -arccos
+
+            if -0.52 <= arccos <= 0.52:
+                x = x + 10
+                objects.update(10, 0)
+            elif 0.52 < arccos <= 1.05:
+                x = x + 10
+                y = y + 10
+                objects.update(10, 10)
+            elif 1.05 < arccos <= 2.09:
+                y = y + 10
+                objects.update(0, 10)
+            elif 2.09 < arccos < 2.62:
+                y = y + 10
+                x = x - 10
+                objects.update(-10, 10)
+            elif arccos >= 2.62 or arccos <= -2.62:
+                x = x - 10
+                objects.update(-10, 0)
+            elif -2.62 < arccos < -2.09:
+                y = y - 10
+                x = x - 10
+                objects.update(-10, -10)
+            elif -2.09 <= arccos < -1.05:
+                y = y - 10
+                objects.update(0, -10)
+            elif -1.05 <= arccos < -0.52:
+                y = y - 10
+                x = x + 10
+                objects.update(10, -10)
+
+    return x, y
+
+def dialog():
+
+
+
+
+objects = pygame.sprite.Group()
+
+for j in range (0, 2):
+    for i in range (0, 7):
+        objects.add(Cummen(randint(-width, width * 2), randint(-height, height *2),i))
+for i in range (0, 7):    
+    for i in range (0, 2):
+        objects.add(Tree(randint(-width, width * 2), randint(-height, height *2),i))
+
+npc = NPC()
+objects.add(npc)
+
+for obj in objects:
+    for obj1 in objects:
+        cordx = 0
+        cordy = 0
+        if obj1.rect.colliderect(obj.rect):
+            point1 = (obj1.rect.x, obj1.rect.y)
+            point2 = (obj1.rect.x + obj1.rect.width, obj1.rect.y)
+            point3 = (obj.rect.x, obj.rect.y)
+
+            p1_p2_vector = (point1[0] - point2[0], point1[1] - point2[1])
+            p1_p3_vector = (point1[0] - point3[0], point1[1] - point3[1])
+
+            scalar = p1_p2_vector[0] * p1_p3_vector[0] + p1_p2_vector[1] * p1_p3_vector[1]
+            mod_p1_p2 = sqrt(p1_p2_vector[0] ** 2 + p1_p2_vector[1] ** 2)
+            mod_p1_p3 = sqrt(p1_p3_vector[0] ** 2 + p1_p3_vector[1] ** 2)
+
+            if (mod_p1_p2 * mod_p1_p3) == 0:
+                mod = 0.2
+            else:
+                mod = (mod_p1_p2 * mod_p1_p3)
+            cos = scalar / mod
+            arccos = math.acos(cos)
+
+            if point3[1] < point1[1]:
+                arccos = -arccos
+
+            if -0.52 <= arccos <= 0.52:
+                cordx = cordx + 10
+                obj1.update(10, 0)
+            elif 0.52 < arccos <= 1.05:
+                cordx = cordx + 10
+                cordy = cordy + 10
+                obj1.update(10, 10)
+            elif 1.05 < arccos <= 2.09:
+                cordy = cordy + 10
+                obj1.update(0, 10)
+            elif 2.09 < arccos < 2.62:
+                cordy = cordy + 10
+                cordx = cordx - 10
+                obj1.update(-10, 10)
+            elif arccos >= 2.62 or arccos <= -2.62:
+                cordx = cordx - 10
+                obj1.update(-10, 0)
+            elif -2.62 < arccos < -2.09:
+                cordy = cordy - 10
+                cordx = cordx - 10
+                obj1.update(-10, -10)
+            elif -2.09 <= arccos < -1.05:
+                cordy = cordy - 10
+                obj1.update(0, -10)
+            elif -1.05 <= arccos < -0.52:
+                cordy = cordy - 10
+                cordx = cordx + 10
+                obj1.update(10, -10)
+
 
 cummen_rects = []
 # cummen_rects.append(pygame.Rect())
+vector = 0
+rabbit = Player()
+
+
 
 run = True
 motion = STOP
-animation = stay[player_animation_i]
 while run:
-
-
-
-    # cummens.draw(screen)
 
     screen.fill((0,0,0))
     screen.blit(bg_img, (x, y))
@@ -122,9 +308,11 @@ while run:
     screen.blit(bg_img, (width + x, - height + y))
     screen.blit(bg_img, (- width + x, - height + y))
 
-    screen.blit(cumen_img, (width / 2 + x, height / 2 + y))
+    screen.blit(rabbit.image, rabbit.rect)
 
+    objects.draw(screen)
 
+    # screen.blit(cumen_img, (randint(10, width + 10) + x, randint(10, height + 10) + y))
 
     if x == width:
         x = 0
@@ -135,6 +323,7 @@ while run:
     elif y ==-height:
         y = 0
 
+# Получение ивента нажатия на кнопку ходьбы
     for i in event.get():
         if i.type == pygame.QUIT:
             run = False
@@ -157,91 +346,51 @@ while run:
             if i.key == pygame.K_s:
                 LOWER = False
 
-    old_motion = motion
-
-    if old_motion != motion:
-        player_animation_i = 0
-
     if LOWER is False and UPPER is False and RIGHT is False and LEFT is False:
-        try:
-            screen.blit(pygame.transform.scale(stay[player_animation_i], character_size), (width / 2, height / 2))
-            clock.tick(10)
-            if player_animation_i < len(stay) - 1:
-                player_animation_i += 1
-            else:
-                player_animation_i = 0
-        except:
-            player_animation_i = 0
-            screen.blit(pygame.transform.scale(stay[player_animation_i], character_size), (width / 2, height / 2))
+        vector = 0
     elif UPPER is True and RIGHT is True:
+        vector = 2
         x -= 10
         y += 10
-        screen.blit(pygame.transform.scale(walk_right[player_animation_i], character_size), (width / 2, height / 2))
-        if player_animation_i < len(walk_left) - 1:
-            player_animation_i += 1
-        else:
-            player_animation_i = 0
+        objects.update(-10, +10)
     elif UPPER is True and LEFT is True:
+        vector = 3
         x += 10
         y += 10
-        screen.blit(pygame.transform.scale(walk_left[player_animation_i], character_size), (width / 2, height / 2))
-        if player_animation_i < len(walk_left) - 1:
-            player_animation_i += 1
-        else:
-            player_animation_i = 0
+        objects.update(+10, +10)
     elif LOWER is True and RIGHT is True:
+        vector = 2
         x -= 10
         y -= 10
-        screen.blit(pygame.transform.scale(walk_right[player_animation_i], character_size), (width / 2, height / 2))
-        if player_animation_i < len(walk_left) - 1:
-            player_animation_i += 1
-        else:
-            player_animation_i = 0
+        objects.update(-10, -10)
     elif LOWER is True and LEFT is True:
+        vector = 3
         x += 10
         y -= 10
-        screen.blit(pygame.transform.scale(walk_left[player_animation_i], character_size), (width / 2, height / 2))
-        if player_animation_i < len(walk_left) - 1:
-            player_animation_i += 1
-        else:
-            player_animation_i = 0
+        objects.update(+10, -10)
     elif UPPER is True:
+        vector = 1
         y += 10
-        try:
-            screen.blit(pygame.transform.scale(ass[player_animation_i], character_size), (width / 2, height / 2))
-            if player_animation_i < len(stay) - 1:
-                player_animation_i += 1
-            else:
-                player_animation_i = 0
-        except:
-            player_animation_i = 0
-            screen.blit(pygame.transform.scale(ass[player_animation_i], character_size), (width / 2, height / 2))
+        objects.update(0, +10)
     elif LEFT is True:
+        vector = 3
         x += 10
-        screen.blit(pygame.transform.scale(walk_left[player_animation_i], character_size), (width / 2, height / 2))
-        if player_animation_i < len(walk_left) - 1:
-            player_animation_i += 1
-        else:
-            player_animation_i = 0
+        objects.update(+10, 0)
     elif RIGHT is True:
+        vector = 2
         x -= 10
-        screen.blit(pygame.transform.scale(walk_right[player_animation_i], character_size), (width / 2, height / 2))
-        if player_animation_i < len(walk_left) - 1:
-            player_animation_i += 1
-        else:
-            player_animation_i = 0
+        objects.update(-10, 0)
     elif LOWER is True:
+        vector = 0
         y -= 10
-        try:
-            screen.blit(pygame.transform.scale(stay[player_animation_i], character_size), (width / 2, height / 2))
-            if player_animation_i < len(stay) - 1:
-                player_animation_i += 1
-            else:
-                player_animation_i = 0
-        except:
-            player_animation_i = 0
-            screen.blit(pygame.transform.scale(stay[player_animation_i], character_size), (width / 2, height / 2))
+        objects.update(0, - 10)
+
+    rabbit.update(vector)
+    x, y = check_collizions(rabbit.rect, x, y)
+
+    # print(rabbit.rect.x, rabbit.rect.y)
 
     clock.tick(60)
+    npc.update(0, 0)
     pygame.display.update()
 pygame.quit()
