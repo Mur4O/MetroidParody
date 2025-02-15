@@ -1,3 +1,4 @@
+import time
 import pygame
 from random import randint
 from pygame import *
@@ -9,7 +10,7 @@ YELLOW = (220, 200, 0)
 pygame.init()
 
 clock = pygame.time.Clock()
-screen = display.set_mode((1680, 1000)) # pygame.FULLSCREEN
+screen = display.set_mode((1680, 1000), vsync=1) # pygame.FULLSCREEN
 display.set_caption('Little Adventure')
 
 # icon = pygame.image.load('')
@@ -40,7 +41,10 @@ walk_left = []
 player_animations = (stay, ass, walk_right, walk_left)
 trees = []
 NPC_anim = []
+NPC_dialog = []
 cummen_img = []
+Menu = []
+is_quest_activated = 0
 
 for i in range (1, 8):
     image = pygame.image.load(f'./Assets/Cummen/C{i}.png').convert_alpha()
@@ -71,6 +75,16 @@ for i in range (1, 6):
     image = pygame.image.load(f'./Assets/NPC/S{i}.png').convert_alpha()
     image = pygame.transform.scale(image, character_size)
     NPC_anim.append(image)
+
+for i in range (1, 3):
+    image = pygame.image.load(f'./Assets/NPC/Texts/Text{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, (280, 240))
+    NPC_dialog.append(image)
+
+for i in range (1, 3):
+    image = pygame.image.load(f'./Assets/NPC/Texts/Menu{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, (280, 200))
+    Menu.append(image)
 
 i = 0
 x = 0
@@ -154,14 +168,20 @@ class NPC(pygame.sprite.Sprite):
                 self.image = NPC_anim[self.index]
                 self.index += 1
 
+    def dialog(self):
+        screen.blit(NPC_dialog[0], (self.rect.x - 200, self.rect.y - 250))
+        pygame.display.update()
+        time.wait(3000)
+
 
 #player_animations[0][0]
 
-def check_collizions(rect1, x, y):
+def check_collizions(rect1, x, y, is_quest_activated):
     for obj in objects:
         if rect1.colliderect(obj.rect):
             if npc.rect == obj.rect:
-                dialog()
+                npc.dialog()
+                is_quest_activated = 1
             point1 = (rect1.x, rect1.y)
             point2 = (rect1.x + rect1.width, rect1.y)
             point3 = (obj.rect.x, obj.rect.y)
@@ -210,10 +230,9 @@ def check_collizions(rect1, x, y):
                 y = y - 10
                 x = x + 10
                 objects.update(10, -10)
+    return x, y, is_quest_activated
 
-    return x, y
 
-def dialog():
 
 
 
@@ -230,60 +249,7 @@ for i in range (0, 7):
 npc = NPC()
 objects.add(npc)
 
-for obj in objects:
-    for obj1 in objects:
-        cordx = 0
-        cordy = 0
-        if obj1.rect.colliderect(obj.rect):
-            point1 = (obj1.rect.x, obj1.rect.y)
-            point2 = (obj1.rect.x + obj1.rect.width, obj1.rect.y)
-            point3 = (obj.rect.x, obj.rect.y)
 
-            p1_p2_vector = (point1[0] - point2[0], point1[1] - point2[1])
-            p1_p3_vector = (point1[0] - point3[0], point1[1] - point3[1])
-
-            scalar = p1_p2_vector[0] * p1_p3_vector[0] + p1_p2_vector[1] * p1_p3_vector[1]
-            mod_p1_p2 = sqrt(p1_p2_vector[0] ** 2 + p1_p2_vector[1] ** 2)
-            mod_p1_p3 = sqrt(p1_p3_vector[0] ** 2 + p1_p3_vector[1] ** 2)
-
-            if (mod_p1_p2 * mod_p1_p3) == 0:
-                mod = 0.2
-            else:
-                mod = (mod_p1_p2 * mod_p1_p3)
-            cos = scalar / mod
-            arccos = math.acos(cos)
-
-            if point3[1] < point1[1]:
-                arccos = -arccos
-
-            if -0.52 <= arccos <= 0.52:
-                cordx = cordx + 10
-                obj1.update(10, 0)
-            elif 0.52 < arccos <= 1.05:
-                cordx = cordx + 10
-                cordy = cordy + 10
-                obj1.update(10, 10)
-            elif 1.05 < arccos <= 2.09:
-                cordy = cordy + 10
-                obj1.update(0, 10)
-            elif 2.09 < arccos < 2.62:
-                cordy = cordy + 10
-                cordx = cordx - 10
-                obj1.update(-10, 10)
-            elif arccos >= 2.62 or arccos <= -2.62:
-                cordx = cordx - 10
-                obj1.update(-10, 0)
-            elif -2.62 < arccos < -2.09:
-                cordy = cordy - 10
-                cordx = cordx - 10
-                obj1.update(-10, -10)
-            elif -2.09 <= arccos < -1.05:
-                cordy = cordy - 10
-                obj1.update(0, -10)
-            elif -1.05 <= arccos < -0.52:
-                cordy = cordy - 10
-                cordx = cordx + 10
-                obj1.update(10, -10)
 
 
 cummen_rects = []
@@ -386,9 +352,12 @@ while run:
         objects.update(0, - 10)
 
     rabbit.update(vector)
-    x, y = check_collizions(rabbit.rect, x, y)
-
+    x, y, is_quest_activated = check_collizions(rabbit.rect, x, y, is_quest_activated)
     # print(rabbit.rect.x, rabbit.rect.y)
+
+    if is_quest_activated == 1:
+        # print('quest activated')
+        screen.blit(Menu[0], (0,0))
 
     clock.tick(60)
     npc.update(0, 0)
