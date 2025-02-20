@@ -4,6 +4,7 @@ from random import randint
 from pygame import *
 import math
 from math import sqrt, acos
+from main2 import *
 
 YELLOW = (220, 200, 0)
 
@@ -24,9 +25,7 @@ bg_img = pygame.transform.scale(bg_img,(width,height))
 
 pygame.mixer.music.load('/Users/yarik/PycharmProjects/MetroidParody/Assets/1-09. Beneath the Mask -instrumental version-.mp3')
 pygame.mixer.music.set_volume(0.1)
-pygame.mixer.music.play()
-
-character_size = (96,120)
+# pygame.mixer.music.play()
 
 UPPER = False
 LOWER = False
@@ -34,6 +33,7 @@ RIGHT = False
 LEFT = False
 STOP = False
 
+character_size = (96,120)
 stay = []
 ass = []
 walk_right = []
@@ -45,6 +45,9 @@ NPC_dialog = []
 cummen_img = []
 Menu = []
 is_quest_activated = 0
+enemy_left = []
+enemy_right = []
+enemy = (enemy_left, enemy_right)
 
 for i in range (1, 8):
     image = pygame.image.load(f'./Assets/Cummen/C{i}.png').convert_alpha()
@@ -83,8 +86,22 @@ for i in range (1, 3):
 
 for i in range (1, 3):
     image = pygame.image.load(f'./Assets/NPC/Texts/Menu{i}.png').convert_alpha()
-    image = pygame.transform.scale(image, (280, 200))
+    image = pygame.transform.scale(image, (320, 200))
     Menu.append(image)
+
+for i in range (1, 3):
+    image = pygame.image.load(f'./Assets/Enemy/Left/Sprite_Boar{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, (120, 96))
+    enemy[0].append(image)
+    image = pygame.image.load(f'./Assets/Enemy/Right/Sprite_Boar{i}.png').convert_alpha()
+    image = pygame.transform.scale(image, (120, 96))
+    enemy[1].append(image)
+
+carrot = pygame.image.load(f'./Assets/Carrot.png').convert_alpha()
+carrot = pygame.transform.scale(carrot, (60,120))
+carrot = pygame.transform.rotate(carrot, 90)
+carrotflipped = pygame.transform.flip(carrot, True, False)
+# carrotrect = carrot.get_rect()
 
 i = 0
 x = 0
@@ -107,7 +124,7 @@ class Tree(pygame.sprite.Sprite):
         self.image = trees[num]
         # self.image = Surface((350,400))
         self.rect = self.image.get_rect()
-        self.rect.center = (a, b)
+        self.rect.topleft = (a, b)
 
     def update(self, x, y):
         self.rect.x += x
@@ -133,7 +150,7 @@ class Player(pygame.sprite.Sprite):
 
         self.index = vector
         if self.current_time % 5 == 0:
-            if self.player_animation_i >= len(player_animations[self.index]) - 1:
+            if self.player_animation_i >= len(player_animations[self.index]):
                 self.player_animation_i = 0
             else:
                 self.image = player_animations[self.index][self.player_animation_i]
@@ -156,88 +173,96 @@ class NPC(pygame.sprite.Sprite):
         self.rect.x += x
         self.rect.y += y
 
+    def animation(self):
         if self.current_time < 60:
             self.current_time += 1
         else:
             self.current_time = 0
 
         if self.current_time % 5 == 0:
-            if self.index >= len(NPC_anim) - 1:
+            if self.index >= len(NPC_anim):
                 self.index = 0
+                self.image = NPC_anim[self.index]
             else:
                 self.image = NPC_anim[self.index]
                 self.index += 1
 
     def dialog(self):
         screen.blit(NPC_dialog[0], (self.rect.x - 200, self.rect.y - 250))
-        pygame.display.update()
-        time.wait(3000)
+        pygame.display.flip()
+        time.wait(1000)
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, a, b):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = enemy
+        self.index = 1
+        self.enem_anim = 1
+        self.image = self.images[self.index][self.enem_anim]
+        self.rect = self.image.get_rect()
+        self.rect.center = (a, b)
+        self.current_time = 0
+
+    def update(self, x, y):
+        self.rect.x += x
+        self.rect.y += y
+
+    def walk(self, rect1):
+        angle = degree_beetwen_vectors(self.rect.center, (self.rect.center[0] + 10, self.rect.center[1]), rect1.center)
+        walk_x, walk_y = find_coordinates((0,0), 10, angle)
+        self.update(walk_x, walk_y)
+
+    def animation(self):
+        if self.current_time < 60:
+            self.current_time += 1
+        else:
+            self.current_time = 0
+
+        if self.current_time % 5 == 0:
+            if self.enem_anim >= len(enemy[self.index]):
+                self.enem_anim = 0
+            else:
+                self.image = enemy[self.index][self.enem_anim]
+                self.enem_anim += 1
+            # self.rect = self.image.get_rect()
+        # print(self.rect.center)
+            # self.rect.center = (width / 2, height / 2)
+
 
 
 #player_animations[0][0]
 
-def check_collizions(rect1, x, y, is_quest_activated):
+def check_collisions(rect1, x, y, is_quest_activated):
     for obj in objects:
         if rect1.colliderect(obj.rect):
             if npc.rect == obj.rect:
                 npc.dialog()
                 is_quest_activated = 1
-            point1 = (rect1.x, rect1.y)
-            point2 = (rect1.x + rect1.width, rect1.y)
-            point3 = (obj.rect.x, obj.rect.y)
 
-            p1_p2_vector = (point1[0] - point2[0], point1[1] - point2[1])
-            p1_p3_vector = (point1[0] - point3[0], point1[1] - point3[1])
+            angle = degree_beetwen_vectors((rect1.center[0], rect1.center[1]), (rect1.center[0] + 10, rect1.center[1]), (obj.rect.center[0], obj.rect.center[1]))
 
-            scalar = p1_p2_vector[0] * p1_p3_vector[0] + p1_p2_vector[1] * p1_p3_vector[1]
-            mod_p1_p2 = sqrt(p1_p2_vector[0] ** 2 + p1_p2_vector[1] ** 2)
-            mod_p1_p3 = sqrt(p1_p3_vector[0] ** 2 + p1_p3_vector[1] ** 2)
-
-            if mod_p1_p2 * mod_p1_p3 == 0:
-                arccos = 0.62
-            else:
-                cos = scalar / (mod_p1_p2 * mod_p1_p3)
-                arccos = math.acos(cos)
-
-            if point3[1] < point1[1]:
-                arccos = -arccos
-
-            if -0.52 <= arccos <= 0.52:
+            if 0 <= angle <= 45 or 315 <= angle < 360:
                 x = x + 10
                 objects.update(10, 0)
-            elif 0.52 < arccos <= 1.05:
-                x = x + 10
-                y = y + 10
-                objects.update(10, 10)
-            elif 1.05 < arccos <= 2.09:
+            elif 45 < angle < 135:
                 y = y + 10
                 objects.update(0, 10)
-            elif 2.09 < arccos < 2.62:
-                y = y + 10
-                x = x - 10
-                objects.update(-10, 10)
-            elif arccos >= 2.62 or arccos <= -2.62:
+            elif 135 <= angle <= 225:
                 x = x - 10
                 objects.update(-10, 0)
-            elif -2.62 < arccos < -2.09:
-                y = y - 10
-                x = x - 10
-                objects.update(-10, -10)
-            elif -2.09 <= arccos < -1.05:
+            elif 225 < angle < 315:
                 y = y - 10
                 objects.update(0, -10)
-            elif -1.05 <= arccos < -0.52:
-                y = y - 10
-                x = x + 10
-                objects.update(10, -10)
     return x, y, is_quest_activated
 
-
-
-
-
+def damage_to_enemies(carrot_rect, enemy1_rect, enemy2_rect, rabbit_rect):
+    print(carrot_rect.center)
+    if carrot_rect.colliderect(enemy1_rect):
+        pass
+        # print('aaa')
 
 objects = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
 
 for j in range (0, 2):
     for i in range (0, 7):
@@ -249,8 +274,8 @@ for i in range (0, 7):
 npc = NPC()
 objects.add(npc)
 
-
-
+enemy1 =  Enemy(100,100)#(randint(-width, width * 2), randint(-height, height *2))
+enemy2 =  Enemy(100,300)#(randint(-width, width * 2), randint(-height, height *2))
 
 cummen_rects = []
 # cummen_rects.append(pygame.Rect())
@@ -258,7 +283,7 @@ vector = 0
 rabbit = Player()
 
 
-
+spawn = 0
 run = True
 motion = STOP
 while run:
@@ -276,9 +301,11 @@ while run:
 
     screen.blit(rabbit.image, rabbit.rect)
 
-    objects.draw(screen)
+    for enem in enemies:
+        enem.animation()
 
-    # screen.blit(cumen_img, (randint(10, width + 10) + x, randint(10, height + 10) + y))
+    objects.draw(screen)
+    npc.animation()
 
     if x == width:
         x = 0
@@ -318,48 +345,78 @@ while run:
         vector = 2
         x -= 10
         y += 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(-10, +10)
     elif UPPER is True and LEFT is True:
         vector = 3
         x += 10
         y += 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(+10, +10)
     elif LOWER is True and RIGHT is True:
         vector = 2
         x -= 10
         y -= 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(-10, -10)
     elif LOWER is True and LEFT is True:
         vector = 3
         x += 10
         y -= 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(+10, -10)
     elif UPPER is True:
         vector = 1
         y += 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(0, +10)
     elif LEFT is True:
         vector = 3
         x += 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(+10, 0)
     elif RIGHT is True:
         vector = 2
         x -= 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(-10, 0)
     elif LOWER is True:
         vector = 0
         y -= 10
+        for enem in enemies:
+            enem.walk(rabbit.rect)
         objects.update(0, - 10)
 
     rabbit.update(vector)
-    x, y, is_quest_activated = check_collizions(rabbit.rect, x, y, is_quest_activated)
-    # print(rabbit.rect.x, rabbit.rect.y)
+    x, y, is_quest_activated = check_collisions(rabbit.rect, x, y, is_quest_activated)
 
     if is_quest_activated == 1:
-        # print('quest activated')
         screen.blit(Menu[0], (0,0))
+        objects.add(enemy1)
+        objects.add(enemy2)
+        enemies.add(enemy1)
+        enemies.add(enemy2)
+        is_quest_activated = 2
+
+    if is_quest_activated == 2:
+        screen.blit(Menu[0], (0, 0))
+
+        if vector == 2:
+            screen.blit(carrot, (width/2 + 30, height/2 - 10))
+            carr_rect = carrot.get_rect()
+        else:
+            screen.blit(carrotflipped, (width / 2 - 155, height / 2 - 8))
+            carr_rect = carrotflipped.get_rect()
+
+        damage_to_enemies(carr_rect, enemy1.rect, enemy2.rect, rabbit.rect)
 
     clock.tick(60)
-    npc.update(0, 0)
-    pygame.display.update()
+    pygame.display.flip()
 pygame.quit()
