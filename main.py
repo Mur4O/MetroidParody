@@ -34,6 +34,7 @@ LEFT = False
 STOP = False
 
 character_size = (96,120)
+carrots = []
 stay = []
 ass = []
 walk_right = []
@@ -101,6 +102,8 @@ carrot = pygame.image.load(f'./Assets/Carrot.png').convert_alpha()
 carrot = pygame.transform.scale(carrot, (60,120))
 carrot = pygame.transform.rotate(carrot, 90)
 carrotflipped = pygame.transform.flip(carrot, True, False)
+carrots.append(carrot)
+carrots.append(carrotflipped)
 # carrotrect = carrot.get_rect()
 
 i = 0
@@ -228,7 +231,24 @@ class Enemy(pygame.sprite.Sprite):
         # print(self.rect.center)
             # self.rect.center = (width / 2, height / 2)
 
+class Carrot(pygame.sprite.Sprite):
+    def __init__(self, a, b):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = carrots
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (a, b)
 
+    def update(self, x, y, ind):
+        self.rect.x = x
+        self.rect.y = y
+        self.index = ind
+        self.image = self.images[self.index]
+
+weapons = pygame.sprite.Group()
+weapon = Carrot(width/2 + 30, height/2 - 10)
+weapons.add(weapon)
 
 #player_animations[0][0]
 
@@ -255,10 +275,11 @@ def check_collisions(rect1, x, y, is_quest_activated):
                 objects.update(0, -10)
     return x, y, is_quest_activated
 
-def damage_to_enemies(carrot_rect, enemy1_rect, enemy2_rect, rabbit_rect):
-    print(carrot_rect.center)
-    if carrot_rect.colliderect(enemy1_rect):
-        pass
+def damage_to_enemies(carrot_rect, enemies, rabbit_rect):
+    for enem in enemies:
+        if carrot_rect.colliderect(enem.rect):
+            print(carrot_rect.center)
+        # pass
         # print('aaa')
 
 objects = pygame.sprite.Group()
@@ -407,15 +428,17 @@ while run:
 
     if is_quest_activated == 2:
         screen.blit(Menu[0], (0, 0))
+        weapons.draw(screen)
 
         if vector == 2:
-            screen.blit(carrot, (width/2 + 30, height/2 - 10))
-            carr_rect = carrot.get_rect()
+            weapon.update(width/2 + 30, height/2 - 10, 0)
+            # screen.blit(carrot, (width/2 + 30, height/2 - 10))
+            # carr_rect = carrot.get_rect()
         else:
-            screen.blit(carrotflipped, (width / 2 - 155, height / 2 - 8))
-            carr_rect = carrotflipped.get_rect()
+            weapon.update(width / 2 - 155, height / 2 - 8, 1)
+        #     carr_rect = carrotflipped.get_rect()
 
-        damage_to_enemies(carr_rect, enemy1.rect, enemy2.rect, rabbit.rect)
+        damage_to_enemies(weapon.rect, enemies, rabbit.rect)
 
     clock.tick(60)
     pygame.display.flip()
