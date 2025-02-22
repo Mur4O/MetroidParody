@@ -7,6 +7,7 @@ from math import sqrt, acos
 from main2 import *
 
 YELLOW = (220, 200, 0)
+BLACK = (0, 0, 0)
 
 pygame.init()
 
@@ -106,6 +107,13 @@ carrots.append(carrot)
 carrots.append(carrotflipped)
 # carrotrect = carrot.get_rect()
 
+Fin = pygame.image.load(f'./Assets/NPC/Texts/Fin.png').convert_alpha()
+Fin = pygame.transform.scale(Fin, (320, 200))
+
+Ded = pygame.image.load(f'./Assets/NPC/Texts/YouKilled.png').convert_alpha()
+Ded = pygame.transform.scale(Ded, (320, 200))
+
+
 i = 0
 x = 0
 y = 0
@@ -195,6 +203,11 @@ class NPC(pygame.sprite.Sprite):
         pygame.display.flip()
         time.wait(1000)
 
+    def dialog1(self):
+        screen.blit(NPC_dialog[1], (self.rect.x - 200, self.rect.y - 250))
+        pygame.display.flip()
+        time.wait(1000)
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, a, b):
         pygame.sprite.Sprite.__init__(self)
@@ -252,12 +265,20 @@ weapons.add(weapon)
 
 #player_animations[0][0]
 
-def check_collisions(rect1, x, y, is_quest_activated):
+def check_collisions(rect1, x, y, is_quest_activated, run):
     for obj in objects:
         if rect1.colliderect(obj.rect):
-            if npc.rect == obj.rect:
+            if npc.rect == obj.rect and is_quest_activated == 0:
                 npc.dialog()
                 is_quest_activated = 1
+
+            if npc.rect == obj.rect and is_quest_activated == 3:
+                npc.dialog1()
+                screen.fill(color=BLACK)
+                screen.blit(Fin, (width / 2 - 100, height / 2 - 100))
+                pygame.display.flip()
+                time.wait(3000)
+                run = False
 
             angle = degree_beetwen_vectors((rect1.center[0], rect1.center[1]), (rect1.center[0] + 10, rect1.center[1]), (obj.rect.center[0], obj.rect.center[1]))
 
@@ -273,14 +294,27 @@ def check_collisions(rect1, x, y, is_quest_activated):
             elif 225 < angle < 315:
                 y = y - 10
                 objects.update(0, -10)
-    return x, y, is_quest_activated
+    return x, y, is_quest_activated, run
 
-def damage_to_enemies(carrot_rect, enemies, rabbit_rect):
+def damage_to_enemies(carrot_rect, enemies, rabbit_rect, run):
     for enem in enemies:
         if carrot_rect.colliderect(enem.rect):
+            enemies.remove(enem)
+            objects.remove(enem)
             print(carrot_rect.center)
-        # pass
-        # print('aaa')
+
+        if rabbit_rect.colliderect(enem.rect):
+            screen.fill(color=BLACK)
+            screen.blit(Ded, (width/2 - 100, height/2 - 100))
+            pygame.display.flip()
+            time.wait(3000)
+            run = False
+
+    return run
+
+
+
+
 
 objects = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
@@ -416,7 +450,7 @@ while run:
         objects.update(0, - 10)
 
     rabbit.update(vector)
-    x, y, is_quest_activated = check_collisions(rabbit.rect, x, y, is_quest_activated)
+
 
     if is_quest_activated == 1:
         screen.blit(Menu[0], (0,0))
@@ -438,7 +472,15 @@ while run:
             weapon.update(width / 2 - 155, height / 2 - 8, 1)
         #     carr_rect = carrotflipped.get_rect()
 
-        damage_to_enemies(weapon.rect, enemies, rabbit.rect)
+        run = damage_to_enemies(weapon.rect, enemies, rabbit.rect, run)
+
+        if len(enemies) == 0:
+            is_quest_activated = 3
+
+    if is_quest_activated == 3:
+        screen.blit(Menu[1], (0, 0))
+
+    x, y, is_quest_activated, run = check_collisions(rabbit.rect, x, y, is_quest_activated, run)
 
     clock.tick(60)
     pygame.display.flip()
